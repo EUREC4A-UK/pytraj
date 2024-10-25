@@ -1,8 +1,9 @@
 import cdsapi
 from cdsapi.api import Result
+import os
 
 
-class RequestFetchCDSClient(cdsapi.Client):
+class RequestFetchCDSClient:
     class RequestNotFoundException(Exception):
         pass
 
@@ -12,43 +13,25 @@ class RequestFetchCDSClient(cdsapi.Client):
     """
 
     def __init__(self, *args, **kwargs):
-        # LD: looking at the code forget=True avoids the cdsapi client sleeping
-        # and waiting for the request to complete
-        kwargs["forget"] = True
-        super().__init__(*args, **kwargs)
+        cdsapi_client = cdsapi.Client()
+        self.client = cdsapi_client.client
 
     def queue_data_request(self, repository_name, query_kwargs):
-        response = self.retrieve(repository_name, query_kwargs)
-
-        if response.status_code not in [200, 202]:
-            raise Exception(
-                "Something went wrong requesting the data: {}"
-                "".format(response.json())
-            )
-        else:
-            reply = response.json()
-            return reply["request_id"]
+        collection = self.client.get_collection(repository_name)
+        collection.process.apply_constraints(**query_kwargs)
+        remote = self.client.submit(repository_name, **query_kwargs)
+        print("submitted request, status")
+        print(remote.status)
+        return remote.request_uid
 
     def download_data_by_request(self, request_id, target):
-        reply = self._get_request_status(request_id=request_id)
-
-        result = Result(client=self, reply=reply)
-        result.download(target=target)
+        remote = self.client.get_remote(request_id)
+        remote.download(target=target)
 
     def _get_request_status(self, request_id):
-        task_url = "{}/tasks/{}".format(self.url, request_id)
-        session = self.session
-        result = self.robust(session.get)(
-            task_url, verify=self.verify, timeout=self.timeout
-        )
-        return result.json()
+        remote = self.client.get_remote(request_id)
+        return remote.status
 
     def get_request_status(self, request_id):
         reply = self._get_request_status(request_id=request_id)
-        if "state" not in reply:
-            if reply["message"] == "Not found":
-                raise self.RequestNotFoundException
-            else:
-                raise NotImplementedError(reply)
-        else:
-            return reply["state"]
+        return reply
