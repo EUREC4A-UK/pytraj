@@ -106,7 +106,7 @@ def download_data(
         with open(path / DATA_REQUESTS_FILENAME, "w") as fh:
             fh.write(yaml.dump(download_requests))
 
-    files_to_download = _get_files(path=path, c=c, debug=True, with_status=["successful"])
+    files_to_download = _get_files(path=path, c=c, debug=True, with_status="successful")
 
     if len(files_to_download) > 0:
         print("Downloading files which are ready...")
