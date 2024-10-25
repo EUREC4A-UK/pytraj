@@ -1,6 +1,5 @@
 import cdsapi
 from cdsapi.api import Result
-import os
 
 
 class RequestFetchCDSClient:
