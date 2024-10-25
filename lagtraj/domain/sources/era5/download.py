@@ -82,8 +82,9 @@ def download_data(
             download_request = download_requests[download_id]
             has_valid_args = download_request["query_hash"] == query_hash
             request_id = download_request["request_id"]
+            request_url = download_request["request_url"]
 
-            if has_valid_args and _request_exists(request_id=request_id, c=c):
+            if has_valid_args and _request_exists(request_url=request_url, c=c):
                 # TODO: unqueue invalid requests here so that the server isn't
                 # working on unecessary requests
                 should_make_request = False
@@ -91,12 +92,12 @@ def download_data(
                 del download_requests[download_id]
 
         if should_make_request:
-            request_id = c.queue_data_request(
+            request_id, request_url = c.queue_data_request(
                 repository_name=REPOSITORY_NAME, query_kwargs=query_kwargs
             )
             assert request_id is not None
             download_requests[download_id] = dict(
-                request_id=request_id, query_hash=query_hash
+                request_id=request_id, request_url=request_url, query_hash=query_hash
             )
 
     # save the download requests IDs so we have them later in case we quit,
@@ -113,11 +114,12 @@ def download_data(
         for file_path in files_to_download:
             request_details = download_requests[file_path]
             request_id = request_details["request_id"]
+            request_url = request_details["request_url"]
             query_hash = request_details["query_hash"]
 
             Path(file_path).parent.mkdir(exist_ok=True, parents=True)
             try:
-                c.download_data_by_request(request_id=request_id, target=file_path)
+                c.download_data_by_request(request_url=request_url, target=file_path)
             except requests.exceptions.HTTPError as ex:
                 if ex.response.status_code == 404:
                     print(
@@ -193,9 +195,9 @@ def data_backend_is_processing_requests(path):
     return len(_get_files(path=path, c=c, with_status=["queued", "running"])) == 0
 
 
-def _request_exists(request_id, c):
+def _request_exists(request_url, c):
     try:
-        c.get_request_status(request_id)
+        c.get_request_status(request_url)
         return True
     except c.RequestNotFoundException:
         return False
@@ -214,16 +216,16 @@ def _get_files(path, c, debug=False, with_status=None):
         if debug:
             print("Status on current data requests:")
         for file_path, request_details in download_requests.items():
-            request_id = request_details["request_id"]
-            status = c.get_request_status(request_id=request_id)
+            request_url = request_details["request_url"]
+            status = c.get_request_status(request_url=request_url)
             if debug:
-                print(" {}:\n\t{} ({})".format(file_path, status, request_id))
+                print(" {}:\n\t{} ({})".format(file_path, status, request_url))
 
-            if with_status is not None:
-                if status == with_status or status in with_status:
-                    files.append(file_path)
-            else:
-                files.append(file_path)
+            #if with_status is not None:
+            #    if status == with_status or status in with_status:
+            #        files.append(file_path)
+            #else:
+            files.append(file_path)
     return files
 
 
