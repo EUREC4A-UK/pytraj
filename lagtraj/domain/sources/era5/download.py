@@ -1,6 +1,7 @@
 """
 Routines for downloading era5 data for a given domain and storing it locally
 """
+
 import datetime
 import warnings
 from pathlib import Path
@@ -106,7 +107,7 @@ def download_data(
         with open(path / DATA_REQUESTS_FILENAME, "w") as fh:
             fh.write(yaml.dump(download_requests))
 
-    files_to_download = _get_files(path=path, c=c, debug=True, with_status="completed")
+    files_to_download = _get_files(path=path, c=c, debug=True, with_status="successful")
 
     if len(files_to_download) > 0:
         print("Downloading files which are ready...")
@@ -190,7 +191,7 @@ def data_backend_is_processing_requests(path):
     Check if the CDSAPI is still processing some of the data requests
     """
     c = RequestFetchCDSClient()
-    return len(_get_files(path=path, c=c, with_status=["queued", "running"])) == 0
+    return len(_get_files(path=path, c=c, with_status=["accepted", "running"])) == 0
 
 
 def _request_exists(request_id, c):

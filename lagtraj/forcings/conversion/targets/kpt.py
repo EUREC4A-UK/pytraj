@@ -188,7 +188,7 @@ kpt_attributes = {
         "units": "m",
         "long_name": "subgrid-scale orography - standard deviation",
     },
-    "isor": {"units": "0-1", "long_name": "subgrid-scale orography - anisotropy"},
+    "isor": {"units": "Numeric", "long_name": "subgrid-scale orography - anisotropy"},
     "anor": {
         "units": "radians",
         "long_name": "subgrid-scale orography - orientation/angle of steepest gradient",
