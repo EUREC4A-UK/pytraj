@@ -47,10 +47,10 @@ def _load_single_file_preprocess(ds):
     order (see discussion on https://github.com/EUREC4A-UK/lagtraj/issues/183
     for details)
     """
-    time_index = ds._indexes.get("time").to_pandas_index()
+    time_index = ds._indexes.get("valid_time").to_pandas_index()
 
     if not time_index.is_monotonic_increasing:
-        ds = ds.sortby("time")
+        ds = ds.sortby("valid_time")
         warnings.warn(
             f"loaded ERA5 file `{ds.encoding['source']}` was sorted by the "
             "`time` coordinate during load to handle out-of-order data in this file"
@@ -69,7 +69,6 @@ def _find_datasets(data_path):
             )
 
             files = list(data_path.glob(filename_format))
-
             if len(files) == 0:
                 raise MissingDomainData(
                     f"No files for {model_run_type} model run {level_type} "
@@ -82,12 +81,26 @@ def _find_datasets(data_path):
             # z needs to be dropped to prevent duplicity, lnsp is simply
             # redundant
             if model_run_type == "an" and level_type == "model":
-                ds_ = ds_.drop_vars(["lnsp", "z"])
+                if "z" in ds_.coords:
+                    ds_ = ds_.drop_vars(["z"])
+                if "lnsp" in ds_.coords:
+                    ds_ = ds_.drop_vars(["lnsp"])
             da_lon = ds_.coords["longitude"]
             da_lon_normalised = _create_normalised_longitude(da_lon=da_lon)
             ds_ = ds_.assign_coords(dict(longitude=da_lon_normalised))
-            ds_ = ds_.rename(dict(latitude="lat", longitude="lon"))
-
+            if "model_level" in ds_.coords:
+                ds_ = ds_.rename(
+                    dict(
+                        latitude="lat",
+                        longitude="lon",
+                        valid_time="time",
+                        model_level="level",
+                    )
+                )
+            else:
+                ds_ = ds_.rename(
+                    dict(latitude="lat", longitude="lon", valid_time="time")
+                )
             dataset_identifier = f"{model_run_type}__{level_type}"
             datasets[dataset_identifier] = ds_
     return datasets
