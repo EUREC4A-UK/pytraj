@@ -1,5 +1,4 @@
 import cdsapi
-from cdsapi.api import Result
 
 
 class RequestFetchCDSClient:
